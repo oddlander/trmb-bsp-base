@@ -29,7 +29,7 @@ usage()
 Usage: MACHINE=<machine> DISTRO=<distro> source $PROGNAME <build-dir>
 Usage:                                   source $PROGNAME <build-dir>
     <machine>    machine name
-    <distro>     distro name
+    <distro>     distro name (default poky)
     <build-dir>  build directory
 
 The first usage is for creating a new build directory. In this case, the
@@ -42,26 +42,22 @@ the script prepares the calling shell for running bitbake on the build
 directory <build-dir>. The build directory configuration is unchanged.
 "
 
-    ls sources/*/conf/machine/*.conf > /dev/null 2>&1
-    ls sources/meta-freescale-distro/conf/distro/fslc-*.conf > /dev/null 2>&1
+    ls sources/poky/*/conf/machine/*.conf > /dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo -e "
-Supported machines: `echo; ls sources/*/conf/machine/*.conf \
+Supported machines: `echo; ls sources/poky/*/conf/machine/*.conf \
 | sed s/\.conf//g | sed -r 's/^.+\///' | xargs -I% echo -e "\t%"`
 
-Supported Freescale's distros: `echo; ls sources/meta-freescale-distro/conf/distro/fslc-*.conf \
-| sed s/\.conf//g | sed -r 's/^.+\///' | xargs -I% echo -e "\t%"`
-
-Available Poky's distros: `echo; ls sources/poky/meta-poky/conf/distro/*.conf \
+Available Poky distros: `echo; ls sources/poky/meta-poky/conf/distro/*.conf \
 | sed s/\.conf//g | sed -r 's/^.+\///' | xargs -I% echo -e "\t%"`
 
 Examples:
 
 - To create a new Yocto build directory:
-  $ MACHINE=imx6qsabresd DISTRO=fslc-framebuffer source $PROGNAME build
+  $ MACHINE=imx6qsabresd DISTRO=poky source $PROGNAME build-imx6qsabresd
 
 - To use an existing Yocto build directory:
-  $ source $PROGNAME build
+  $ source $PROGNAME <existing build directory>
 "
     fi
 }
@@ -124,10 +120,8 @@ if [ -z "$SDKMACHINE" ]; then
 fi
 
 if [ "$build_dir_setup_enabled" = "true" ] && [ -z "$DISTRO" ]; then
-    usage
-    echo -e "ERROR: You must set DISTRO when creating a new build directory."
-    clean_up
-    return 1
+    echo -e "INFO: No DISTRO specified, using 'poky'."
+	DISTRO='poky'
 fi
 
 OEROOT=$PWD/sources/poky
@@ -151,7 +145,7 @@ if [ "$build_dir_setup_enabled" = "true" ]; then
     mv conf/local.conf conf/local.conf.sample
 
     # Generate the local.conf based on the Yocto defaults
-    TEMPLATES=$CWD/sources/base/conf 
+    TEMPLATES=$CWD/sources/trmb-base/conf 
     grep -v '^#\|^$' conf/local.conf.sample > conf/local.conf
     cat >> conf/local.conf <<EOF
 
@@ -173,9 +167,25 @@ EOF
     done
 
     generated_config=1
+
+
+	#ROBBAN Set common build stuff in our local.conf:
+	# Set EULA to accepted
+	echo "ACCEPT_FSL_EULA = \"1\"" >> conf/local.conf
+	#Toaster awareness
+	echo "INHERIT+=\"toaster buildhistory\"" >> conf/local.conf
+	# Build in parallel
+	echo "BB_NUMBER_THREADS = \"16\""  >> conf/local.conf
+	echo "PARALLEL_MAKE = \"-j 16\"" >> conf/local.conf
+
+	# stuff that will/might be config'd more dynamicly later on
+	echo "EXTRA_IMAGE_FEATURES = \"debug-tweaks ssh-server-openssh tools-debug\"" >> conf/local.conf
+	echo "IMAGE_INSTALL_append = \"openssh-sftp-server libstdc++\"" >> conf/local.conf
+
 fi
 
-# Handle EULA setting
+
+# Handle EULA setting...hehe (see above)
 EULA_ACCEPTED=
 
 # EULA has been accepted already (ACCEPT_FSL_EULA is set in local.conf)
@@ -229,14 +239,7 @@ fi
 
 cat <<EOF
 
-Welcome to Freescale Community BSP
-
-The Yocto Project has extensive documentation about OE including a
-reference manual which can be found at:
-    http://yoctoproject.org/documentation
-
-For more information about OpenEmbedded see their website:
-    http://www.openembedded.org/
+Welcome to Trimbles yocto BSP enviroment
 
 You can now run 'bitbake <target>'
 
@@ -256,7 +259,6 @@ Your build environment has been configured with:
     MACHINE=$MACHINE
     SDKMACHINE=$SDKMACHINE
     DISTRO=$DISTRO
-    EULA=$EULA
 EOF
 else
     echo "Your configuration files at $1 have not been touched."
