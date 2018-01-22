@@ -178,9 +178,9 @@ EOF
 	echo "BB_NUMBER_THREADS = \"16\""  >> conf/local.conf
 	echo "PARALLEL_MAKE = \"-j 16\"" >> conf/local.conf
 
-	# stuff that will/might be config'd more dynamicly later on
-	echo "EXTRA_IMAGE_FEATURES = \"debug-tweaks ssh-server-openssh tools-debug\"" >> conf/local.conf
-	echo "IMAGE_INSTALL_append = \"openssh-sftp-server libstdc++\"" >> conf/local.conf
+	# now included via machine conf include machine-trmb-default.inc
+	#echo "EXTRA_IMAGE_FEATURES = \"debug-tweaks ssh-server-openssh tools-debug\"" >> conf/local.conf
+	#echo "IMAGE_INSTALL_append = \"openssh-sftp-server libstdc++\"" >> conf/local.conf
 
 fi
 
