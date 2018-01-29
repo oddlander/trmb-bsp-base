@@ -156,8 +156,23 @@ EOF
         -e "s,SDKMACHINE ??=.*,SDKMACHINE ??= '$SDKMACHINE',g" \
         -e "s,DISTRO ?=.*,DISTRO ?= '$DISTRO',g" \
         -i conf/local.conf
+    
+    cp $TEMPLATES/* conf/  
+    # add layer to BBLAYER depending on MACHIME
+    #if MACHINE string starts with:
+    # imx -> freescale
+    # zc -> xilinx
+    if [[ $MACHINE = "imx"* ]]; then # BASH syntax
+        echo "Add Freescale layer to bblayers.conf"
+        echo "  \${BSPDIR}/sources/poky/meta-freescale\\" >> conf/bblayers.conf
+    elif [[ $MACHINE = "zc"* ]]; then
+        echo "Add Xilinx layer to bblayers.conf"
+        echo "  \${BSPDIR}/sources/poky/meta-xilinx\\" >> conf/bblayers.conf
+    else
+        echo "Not a Freescale or a Xilinx based MACHINE!!!"
+    fi    
+    echo "\"" >> conf/bblayers.conf
 
-    cp $TEMPLATES/* conf/
 
     for s in $HOME/.oe $HOME/.yocto; do
         if [ -e $s/site.conf ]; then
